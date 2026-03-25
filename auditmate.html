@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuditMate — Умный аудит стартапа</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #232733;
+    --accent: #4ade80;
+    --accent2: #22d3ee;
+    --accent3: #f59e0b;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --danger: #f87171;
+    --radius: 14px;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+
+  /* === LAYOUT === */
+  .app { display: grid; grid-template-columns: 300px 1fr; grid-template-rows: 64px 1fr; height: 100vh; }
+
+  /* === HEADER === */
+  header {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    z-index: 10;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: #0a0c10;
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+  .header-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25);
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; color: var(--accent);
+  }
+  .badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    padding: 20px 16px;
+    gap: 24px;
+  }
+
+  .sidebar-section-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+    color: var(--muted); text-transform: uppercase; padding: 0 4px;
+    margin-bottom: 8px;
+  }
+
+  /* Role Cards */
+  .roles { display: flex; flex-direction: column; gap: 8px; }
+  .role-card {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+  .role-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .role-card:hover { border-color: #333; transform: translateY(-1px); }
+  .role-card.active { border-color: var(--role-color, var(--accent)); background: rgba(74,222,128,0.05); }
+  .role-card.active::before { opacity: 1; }
+
+  .role-card[data-role="founder"] { --role-color: var(--accent); }
+  .role-card[data-role="founder"].active { background: rgba(74,222,128,0.06); }
+  .role-card[data-role="investor"] { --role-color: var(--accent2); }
+  .role-card[data-role="investor"].active { background: rgba(34,211,238,0.06); border-color: var(--accent2); }
+  .role-card[data-role="mentor"] { --role-color: var(--accent3); }
+  .role-card[data-role="mentor"].active { background: rgba(245,158,11,0.06); border-color: var(--accent3); }
+  .role-card[data-role="critic"] { --role-color: var(--danger); }
+  .role-card[data-role="critic"].active { background: rgba(248,113,113,0.06); border-color: var(--danger); }
+
+  .role-icon { font-size: 22px; margin-bottom: 6px; }
+  .role-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+  .role-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .role-tag {
+    display: inline-block; margin-top: 7px;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.5px;
+    padding: 2px 8px; border-radius: 10px;
+    background: rgba(255,255,255,0.05); color: var(--muted);
+  }
+  .role-card.active .role-tag {
+    background: rgba(255,255,255,0.08); color: var(--text);
+  }
+
+  /* Audit Checklist */
+  .checklist { display: flex; flex-direction: column; gap: 6px; }
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.15s; font-size: 13px;
+  }
+  .check-item:hover { border-color: #2d3344; }
+  .check-item.done { border-color: rgba(74,222,128,0.3); }
+  .check-box {
+    width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+    border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 11px;
+  }
+  .check-item.done .check-box { background: var(--accent); border-color: var(--accent); color: #0a0c10; }
+  .check-label { flex: 1; }
+  .check-item.done .check-label { color: var(--muted); text-decoration: line-through; }
+
+  /* Progress bar */
+  .progress-wrap { padding: 0 2px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-label { font-size: 12px; color: var(--muted); }
+  .progress-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--accent); }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.4s ease; }
+
+  /* Quick prompts */
+  .quick-btns { display: flex; flex-direction: column; gap: 6px; }
+  .quick-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px; border-radius: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; cursor: pointer;
+    transition: all 0.15s; text-align: left;
+  }
+  .quick-btn:hover { border-color: #2d3344; background: #1a1e28; transform: translateX(2px); }
+  .quick-btn-icon { font-size: 14px; flex-shrink: 0; }
+
+  /* === CHAT === */
+  .chat-area {
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    position: relative;
+  }
+
+  /* Context bar */
+  .context-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 12px;
+  }
+  .context-role { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+  .context-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .context-actions { display: flex; gap: 8px; }
+  .ctx-btn {
+    padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--muted); font-size: 11px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ctx-btn:hover { color: var(--text); border-color: #333; }
+
+  /* Messages */
+  .messages {
+    flex: 1; overflow-y: auto; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Welcome screen */
+  .welcome {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px;
+    gap: 16px;
+  }
+  .welcome-icon { font-size: 52px; margin-bottom: 8px; }
+  .welcome-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; line-height: 1.15; }
+  .welcome-title span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .welcome-desc { color: var(--muted); font-size: 14px; max-width: 400px; line-height: 1.6; }
+  .welcome-tip {
+    margin-top: 12px; padding: 12px 20px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 12px; color: var(--muted); max-width: 360px;
+  }
+  .welcome-tip strong { color: var(--text); }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 12px; max-width: 780px; }
+  .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+  .msg-avatar {
+    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .msg.assistant .msg-avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #0a0c10; font-weight: 700; font-size: 13px; font-family: 'Syne', sans-serif; }
+  .msg.user .msg-avatar { background: var(--surface2); border: 1px solid var(--border); }
+  .msg-content { flex: 1; }
+  .msg-role { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; letter-spacing: 0.3px; }
+  .msg.user .msg-role { text-align: right; }
+  .msg-bubble {
+    padding: 13px 16px; border-radius: 14px; font-size: 14px; line-height: 1.65;
+  }
+  .msg.assistant .msg-bubble {
+    background: var(--surface); border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+  .msg.user .msg-bubble {
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.2);
+    border-top-right-radius: 4px; color: var(--text);
+  }
+  .msg-bubble p { margin-bottom: 10px; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+  .msg-bubble ul, .msg-bubble ol { padding-left: 18px; margin-bottom: 10px; }
+  .msg-bubble li { margin-bottom: 5px; }
+  .msg-bubble strong { color: var(--accent); font-weight: 600; }
+  .msg-bubble em { color: var(--accent2); font-style: normal; font-weight: 500; }
+  .msg-bubble code {
+    background: rgba(255,255,255,0.07); padding: 1px 6px; border-radius: 4px;
+    font-size: 12px; font-family: monospace;
+  }
+  .msg-bubble h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+
+  /* Score card in messages */
+  .score-card {
+    margin-top: 14px; padding: 14px; border-radius: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .score-card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px; }
+  .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .score-item { text-align: center; }
+  .score-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; }
+  .score-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .score-item.good .score-num { color: var(--accent); }
+  .score-item.mid .score-num { color: var(--accent3); }
+  .score-item.low .score-num { color: var(--danger); }
+
+  /* Typing indicator */
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 14px 16px; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: typingBounce 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  /* === INPUT AREA === */
+  .input-area {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .input-wrap {
+    display: flex; gap: 10px; align-items: flex-end;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 10px 10px 10px 16px;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: rgba(74,222,128,0.4); }
+  .chat-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    resize: none; max-height: 120px; min-height: 22px; line-height: 1.5;
+  }
+  .chat-input::placeholder { color: var(--muted); }
+  .send-btn {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), #22c55e);
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; color: #0a0c10;
+  }
+  .send-btn:hover { transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .send-btn svg { width: 16px; height: 16px; }
+  .input-hint { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--muted); padding: 0 4px; }
+
+  /* Error */
+  .error-msg {
+    padding: 10px 14px; border-radius: 10px; font-size: 13px;
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: var(--danger);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-mark">AM</div>
+      <div>
+        <div class="logo-text">AuditMate</div>
+        <div class="logo-sub">Умный аудит стартапа</div>
+      </div>
+    </div>
+    <div class="header-badge">
+      <div class="badge-dot"></div>
+      AI активен
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Role selection -->
+    <div>
+      <div class="sidebar-section-title">Выберите роль ИИ</div>
+      <div class="roles">
+
+        <button class="role-card active" data-role="founder" onclick="setRole(this)">
+          <div class="role-icon">🚀</div>
+          <div class="role-name">Помощник основателя</div>
+          <div class="role-desc">Помогает оценить идею, найти сильные стороны и подготовиться к питчу</div>
+          <span class="role-tag">Для фаундеров</span>
+        </button>
+
+        <button class="role-card" data-role="investor" onclick="setRole(this)">
+          <div class="role-icon">💼</div>
+          <div class="role-name">Оценщик инвестора</div>
+          <div class="role-desc">Анализирует стартап с позиции венчурного инвестора: рынок, команда, трекшен</div>
+          <span class="role-tag">Для инвесторов</span>
+        </button>
+
+        <button class="role-card" data-role="mentor" onclick="setRole(this)">
+          <div class="role-icon">🎓</div>
+          <div class="role-name">Ментор акселератора</div>
+          <div class="role-desc">Задаёт правильные вопросы и направляет команду к зрелым решениям</div>
+          <span class="role-tag">Для команд</span>
+        </button>
+
+        <button class="role-card" data-role="critic" onclick="setRole(this)">
+          <div class="role-icon">🔍</div>
+          <div class="role-name">Жёсткий критик</div>
+          <div class="role-desc">Находит все слабые места, риски и типичные ошибки без прикрас</div>
+          <span class="role-tag">Для проверки</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Checklist -->
+    <div>
+      <div class="sidebar-section-title">Чек-лист аудита</div>
+      <div class="checklist" id="checklist">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Описана проблема</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Целевая аудитория определена</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Уникальность решения</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Конкуренты проанализированы</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Бизнес-модель понятна</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Финансовая модель готова</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">Команда сформирована</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <span class="check-label">MVP готов или описан</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="sidebar-section-title">Прогресс аудита</div>
+      <div class="progress-header">
+        <span class="progress-label">Завершено</span>
+        <span class="progress-val" id="prog-val">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Quick prompts -->
+    <div>
+      <div class="sidebar-section-title">Быстрый старт</div>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="sendQuick('Помоги мне провести полный аудит моего стартапа. С чего начать?')">
+          <span class="quick-btn-icon">▶</span> Начать аудит с нуля
+        </button>
+        <button class="quick-btn" onclick="sendQuick('Оцени мою идею: ')">
+          <span class="quick-btn-icon">💡</span> Оценить идею
+        </button>
+        <button class="quick-btn" onclick="sendQuick('Какие риски есть у моего стартапа?')">
+          <span class="quick-btn-icon">⚠️</span> Анализ рисков
+        </button>
+        <button class="quick-btn" onclick="sendQuick('Как подготовиться к питчу перед инвесторами?')">
+          <span class="quick-btn-icon">🎯</span> Подготовка к питчу
+        </button>
+        <button class="quick-btn" onclick="sendQuick('Помоги проанализировать конкурентов в моей нише')">
+          <span class="quick-btn-icon">🔎</span> Анализ конкурентов
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CHAT AREA -->
+  <main class="chat-area">
+
+    <!-- Context bar -->
+    <div class="context-bar">
+      <div class="context-role">
+        <div class="context-dot" id="ctx-dot" style="background: var(--accent)"></div>
+        <span id="ctx-role-name">Помощник основателя</span>
+      </div>
+      <div class="context-actions">
+        <button class="ctx-btn" onclick="clearChat()">Очистить чат</button>
+        <button class="ctx-btn" onclick="exportChat()">Экспорт</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🚀</div>
+        <div class="welcome-title">Привет! Я <span>AuditMate</span></div>
+        <div class="welcome-desc">Выберите роль ИИ слева и начните разговор — помогу разобрать ваш стартап по косточкам за 20 минут.</div>
+        <div class="welcome-tip">
+          <strong>Совет:</strong> Опишите вашу идею одним абзацем — что за продукт, для кого, и в чём уникальность. Начнём с этого!
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea class="chat-input" id="chat-input" placeholder="Опишите ваш стартап или задайте вопрос..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">
+        <span>Enter — отправить · Shift+Enter — новая строка</span>
+        <span id="char-count">0 / 2000</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ===== CONFIG =====
+// Если фронтенд лежит в ./static/ и раздаётся самим FastAPI — оставьте пустую строку.
+// Если запускаете фронтенд отдельно (например live-server на 5500) — укажите адрес бэкенда.
+const API_BASE = '';  // '' → тот же хост; 'http://localhost:8000' → отдельный сервер
+
+// ===== STATE =====
+let currentRole = 'founder';
+let conversationHistory = [];
+let isLoading = false;
+
+const roleConfig = {
+  founder: {
+    name: 'Помощник основателя',
+    color: 'var(--accent)',
+    emoji: '🚀',
+    system: `Ты — AuditMate, умный AI-ассистент для аудита стартапов. Ты выступаешь в роли **опытного ментора и помощника основателя**.
+
+Твоя задача: помочь фаундеру объективно оценить свой проект, найти сильные стороны и точки роста.
+
+Стиль общения: дружелюбный, поддерживающий, конструктивный. Ты веришь в команду, но говоришь правду.
+
+При анализе стартапа всегда оценивай:
+1. Проблему и её реальность (есть ли боль у рынка?)
+2. Решение и его уникальность (почему именно так?)
+3. Целевую аудиторию (кто конкретно платит?)
+4. Бизнес-модель (как зарабатываем?)
+5. Конкурентов (почему выиграем?)
+6. Команду (есть ли нужные компетенции?)
+7. MVP/Трекшен (что уже сделано?)
+
+Форматируй ответы структурированно, используй эмодзи для разделов, давай конкретные рекомендации с примерами. Пиши на русском языке.`
+  },
+  investor: {
+    name: 'Оценщик инвестора',
+    color: 'var(--accent2)',
+    emoji: '💼',
+    system: `Ты — AuditMate, умный AI-ассистент. Ты выступаешь в роли **опытного венчурного инвестора (VC)** с 10+ годами опыта.
+
+Ты оцениваешь стартапы через призму инвестиционной привлекательности. Твои критерии — возврат инвестиций, масштабируемость, рыночный потенциал.
+
+Стиль общения: профессиональный, аналитический, прямой. Ты задаёшь острые вопросы.
+
+При оценке стартапа фокусируйся на:
+1. **TAM/SAM/SOM** — реальный размер рынка с цифрами
+2. **Unit economics** — LTV, CAC, маржа
+3. **Traction** — что уже есть: выручка, пользователи, партнёры
+4. **Team** — опыт основателей, domain expertise
+5. **Competition moat** — почему не скопируют завтра?
+6. **Exit potential** — как и кому продадим?
+7. **Red flags** — что тебя настораживает
+
+Давай объективную инвестиционную оценку по шкале 1-10 с обоснованием. Пиши на русском языке.`
+  },
+  mentor: {
+    name: 'Ментор акселератора',
+    color: 'var(--accent3)',
+    emoji: '🎓',
+    system: `Ты — AuditMate, умный AI-ассистент. Ты выступаешь в роли **опытного ментора акселератора** (например, YC, Сколково, ФРИИ).
+
+Твоя задача: помочь команде задать правильные вопросы и найти собственные ответы. Ты направляешь, а не решаешь за них.
+
+Стиль общения: сократический метод — много вопросов, помощь в структурировании мышления. Тёплый, мудрый, требовательный.
+
+Ключевые вопросы которые ты задаёшь:
+- "Почему вы?" (почему именно эта команда решит эту проблему?)
+- "Почему сейчас?" (что изменилось, что сделало это возможным?)
+- "Почему так?" (почему именно такое решение, а не другое?)
+- "Кто ваш первый клиент?" (конкретный человек, не сегмент)
+- "Что узнали за последние 2 недели?"
+
+Помогай команде готовиться к Demo Day. Структурируй питч по формуле: Проблема → Решение → Рынок → Бизнес-модель → Трекшен → Команда → Запрос. Пиши на русском языке.`
+  },
+  critic: {
+    name: 'Жёсткий критик',
+    color: 'var(--danger)',
+    emoji: '🔍',
+    system: `Ты — AuditMate, умный AI-ассистент. Ты выступаешь в роли **жёсткого бизнес-критика и devil's advocate**.
+
+Твоя задача: найти ВСЕ слабые места, риски и потенциальные провалы. Ты делаешь это из заботы — лучше узнать сейчас, чем потерять деньги потом.
+
+Стиль общения: прямой, без прикрас, иногда провокационный. Ты не злой, но беспощадно честный.
+
+Ты ищешь:
+1. **Фатальные flaws** — что убьёт проект?
+2. **Рыночные риски** — что если рынок не существует?
+3. **Конкурентные риски** — что если Google/Яндекс сделают это завтра?
+4. **Командные риски** — где нет компетенций?
+5. **Финансовые риски** — когда закончатся деньги?
+6. **Регуляторные риски** — что если запретят?
+7. **Технические риски** — что не получится реализовать?
+
+Используй фреймворки: Pre-Mortem Analysis, 10 вопросов Питера Тиля, SWOT. После каждой критики давай конкретный совет как это исправить. Пиши на русском языке.`
+  }
+};
+
+// ===== ROLE SELECTION =====
+function setRole(card) {
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  currentRole = card.dataset.role;
+  const cfg = roleConfig[currentRole];
+
+  document.getElementById('ctx-dot').style.background = cfg.color;
+  document.getElementById('ctx-role-name').textContent = cfg.name;
+
+  // Reset conversation when role changes
+  conversationHistory = [];
+  showWelcome();
+}
+
+// ===== CHECKLIST =====
+function toggleCheck(item) {
+  item.classList.toggle('done');
+  if (item.classList.contains('done')) {
+    item.querySelector('.check-box').textContent = '✓';
+  } else {
+    item.querySelector('.check-box').textContent = '';
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  const all = document.querySelectorAll('.check-item').length;
+  const done = document.querySelectorAll('.check-item.done').length;
+  const pct = Math.round((done / all) * 100);
+  document.getElementById('prog-val').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+}
+
+// ===== CHAT =====
+function showWelcome() {
+  const messages = document.getElementById('messages');
+  messages.innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">${roleConfig[currentRole].emoji}</div>
+      <div class="welcome-title">Режим: <span>${roleConfig[currentRole].name}</span></div>
+      <div class="welcome-desc">Роль ИИ изменена. Опишите ваш стартап или задайте вопрос — начнём анализ!</div>
+      <div class="welcome-tip">
+        <strong>Совет:</strong> Чем подробнее вы опишете идею, тем точнее будет анализ.
+      </div>
+    </div>`;
+}
+
+function clearChat() {
+  conversationHistory = [];
+  showWelcome();
+}
+
+function hideWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  document.getElementById('char-count').textContent = el.value.length + ' / 2000';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendQuick(text) {
+  document.getElementById('chat-input').value = text;
+  sendMessage();
+}
+
+function appendMessage(role, content) {
+  hideWelcome();
+  const messages = document.getElementById('messages');
+  const cfg = roleConfig[currentRole];
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  if (role === 'assistant') {
+    div.innerHTML = `
+      <div class="msg-avatar">${cfg.emoji}</div>
+      <div class="msg-content">
+        <div class="msg-role">${cfg.name}</div>
+        <div class="msg-bubble">${formatMessage(content)}</div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <div class="msg-avatar">👤</div>
+      <div class="msg-content">
+        <div class="msg-role">Вы</div>
+        <div class="msg-bubble">${escapeHtml(content)}</div>
+      </div>`;
+  }
+
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  hideWelcome();
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.id = 'typing-msg';
+  div.innerHTML = `
+    <div class="msg-avatar">${roleConfig[currentRole].emoji}</div>
+    <div class="msg-content">
+      <div class="msg-role">${roleConfig[currentRole].name}</div>
+      <div class="msg-bubble">
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+    </div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-msg');
+  if (t) t.remove();
+}
+
+function formatMessage(text) {
+  // Basic markdown-like formatting
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/, '<p>$1</p>');
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+async function sendMessage() {
+  if (isLoading) return;
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || text.length > 2000) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('char-count').textContent = '0 / 2000';
+
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+
+  appendMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+
+  showTyping();
+
+  try {
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        role: currentRole,
+        messages: conversationHistory
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.reply;
+
+    conversationHistory.push({ role: 'assistant', content: reply });
+
+    removeTyping();
+    appendMessage('assistant', reply);
+
+  } catch (err) {
+    removeTyping();
+    hideWelcome();
+    const messages = document.getElementById('messages');
+    const errDiv = document.createElement('div');
+    errDiv.className = 'error-msg';
+    errDiv.textContent = '⚠️ Ошибка: ' + (err.message || 'Сервер недоступен. Убедитесь, что бэкенд запущен.');
+    messages.appendChild(errDiv);
+    messages.scrollTop = messages.scrollHeight;
+    conversationHistory.pop();
+  } finally {
+    isLoading = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('chat-input').focus();
+  }
+}
+
+function exportChat() {
+  if (conversationHistory.length === 0) { alert('Чат пуст!'); return; }
+  let text = `AuditMate — Экспорт чата\nРоль: ${roleConfig[currentRole].name}\nДата: ${new Date().toLocaleString('ru')}\n\n${'='.repeat(50)}\n\n`;
+  conversationHistory.forEach(m => {
+    text += `[${m.role === 'user' ? 'ВЫ' : 'AUDITMATE'}]\n${m.content}\n\n`;
+  });
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `auditmate-${Date.now()}.txt`;
+  a.click();
+}
+</script>
+</body>
+</html>
