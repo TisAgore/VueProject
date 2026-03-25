@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import Literal
-from huggingface_hub import InferenceClient
-import asyncio
+from huggingface_hub import AsyncInferenceClient
 import os
 from pathlib import Path
 
@@ -33,7 +32,7 @@ MAX_HISTORY = 20   # максимум сообщений в истории
 
 # Клиент создаётся один раз при старте.
 # Если HF_TOKEN не задан — попробует анонимный доступ (только публичные модели).
-hf_client = InferenceClient(token=HF_TOKEN or None)
+hf_client = AsyncInferenceClient(token=HF_TOKEN or None)
 
 
 # ─────────────────────────────────────────
@@ -136,12 +135,11 @@ class HealthResponse(BaseModel):
 
 
 # ─────────────────────────────────────────
-# Вспомогательная функция — вызов HF в threadpool
-# (InferenceClient синхронный, запускаем через executor чтобы не блокировать event loop)
+# Вспомогательная функция — асинхронный вызов HF
 # ─────────────────────────────────────────
-def _call_hf(system_prompt: str, messages: list[Message]) -> tuple[str, int]:
+async def _call_hf(system_prompt: str, messages: list[Message]) -> tuple[str, int]:
     """
-    Синхронный вызов HuggingFace InferenceClient.
+    Асинхронный вызов HuggingFace AsyncInferenceClient.
     Возвращает (текст_ответа, кол-во_токенов).
     """
     # Формируем список сообщений в формате OpenAI-совместимого API:
@@ -149,7 +147,7 @@ def _call_hf(system_prompt: str, messages: list[Message]) -> tuple[str, int]:
     hf_messages = [{"role": "system", "content": system_prompt}]
     hf_messages += [{"role": m.role, "content": m.content} for m in messages]
 
-    completion = hf_client.chat.completions.create(
+    completion = await hf_client.chat.completions.create(
         model=HF_MODEL,
         messages=hf_messages,
         max_tokens=MAX_TOKENS,
@@ -211,11 +209,8 @@ async def chat(request: ChatRequest):
     system_prompt = ROLE_PROMPTS[request.role]
     trimmed = request.messages[-MAX_HISTORY:]  # обрезаем историю
 
-    loop = asyncio.get_event_loop()
     try:
-        reply, total_tokens = await loop.run_in_executor(
-            None, _call_hf, system_prompt, trimmed
-        )
+        reply, total_tokens = await _call_hf(system_prompt, trimmed)
     except Exception as e:
         raise HTTPException(
             status_code=502,
