@@ -56,7 +56,7 @@ def evaluate_pitch(
     if sequential and delay > 0:
         print(f"   Задержка между агентами: {delay}s")
 
-    print(f"   Retry при 429: до {max_retries} попыток (exponential backoff)")
+    print(f"   Retry при 429: до {max_retries} попыток")
 
     if per_agent_models:
         print(f"   Переопределения агентов: {per_agent_models}")

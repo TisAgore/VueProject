@@ -10,13 +10,9 @@ class DOCXParserTool:
     def execute(self, input_data: Attachment | str | Path) -> ParsedAttachment:
         """Парсит DOCX-файл через python-docx."""
 
+        from docx import Document
+
         attachment = _coerce_attachment(input_data)
-        try:
-            from docx import Document
-        except ImportError as e:
-            raise RuntimeError(
-                "Для чтения DOCX-файлов установите зависимость: python-docx."
-            ) from e
 
         document = Document(str(attachment.path))
         paragraphs = [p.text.strip() for p in document.paragraphs if p.text.strip()]

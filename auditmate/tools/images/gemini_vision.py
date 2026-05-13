@@ -9,7 +9,7 @@ from auditmate.models.attachments import ParsedAttachment
 from auditmate.utils.debug import DebugRecorder
 
 
-GEMINI_VISION_MODEL = "gemini-2.5-flash-lite"
+GEMINI_VISION_MODEL = "gemini-3.1-flash-lite"
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 

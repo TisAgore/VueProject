@@ -12,13 +12,9 @@ class ImageParserTool:
     def execute(self, input_data: Attachment | str | Path) -> ParsedAttachment:
         """Парсит изображение без визуального анализа содержимого."""
 
+        from PIL import Image
+
         attachment = _coerce_attachment(input_data)
-        try:
-            from PIL import Image
-        except ImportError as e:
-            raise RuntimeError(
-                "Для чтения изображений установите зависимость: pillow."
-            ) from e
 
         mime_type = mimetypes.guess_type(attachment.path)[0] or "application/octet-stream"
         with Image.open(attachment.path) as image:

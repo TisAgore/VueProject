@@ -11,13 +11,9 @@ class PDFParserTool:
     def execute(self, input_data: Attachment | str | Path) -> ParsedAttachment:
         """Парсит PDF-файл через PyMuPDF."""
 
+        import fitz
+
         attachment = _coerce_attachment(input_data)
-        try:
-            import fitz
-        except ImportError as e:
-            raise RuntimeError(
-                "Для чтения PDF-файлов установите зависимость: pymupdf."
-            ) from e
 
         document = fitz.open(str(attachment.path))
         try:
