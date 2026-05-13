@@ -1,2 +1,8 @@
 .env
 committee_report.json
+__pycache__/
+*.py[cod]
+.auditmate_debug/
+.pytest_cache/
+.pytest_tmp/
+pytest-cache-files-*/

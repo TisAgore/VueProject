@@ -1,0 +1,9 @@
+openai
+python-dotenv
+pydantic
+json-repair
+openpyxl
+pymupdf
+python-docx
+pillow
+pytest
