@@ -4,14 +4,14 @@ import time
 from openai import RateLimitError
 
 
-def call_with_retry(client, kwargs: dict, max_retries: int = 3, base_delay: float = 2.0):
+def call_with_retry(func, max_retries: int = 3, base_delay: float = 2.0):
     """Вызывает chat completions с exponential backoff при rate limit провайдера."""
 
     attempt = 0
 
     while True:
         try:
-            return client.chat.completions.create(**kwargs)
+            return func()
         except RateLimitError as e:
             attempt += 1
             if attempt > max_retries:

@@ -35,7 +35,10 @@ class OpenRouterProvider:
         """Генерирует сырой ответ модели, при необходимости запрашивая JSON Schema."""
 
         kwargs = build_request_kwargs(model_id, system, user, temperature, self.name, response_model)
-        response = call_with_retry(self.client, kwargs, max_retries=max_retries)
+        response = call_with_retry(
+            lambda: self.client.chat.completions.create(**kwargs),
+            max_retries=max_retries
+        )
         return response.choices[0].message.content.strip()
 
 

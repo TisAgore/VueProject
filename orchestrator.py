@@ -25,4 +25,3 @@ def get_client_for_model(model_key: str, lmstudio_url: str = LMSTUDIO_BASE_URL):
 
 if __name__ == "__main__":
     main()
-
