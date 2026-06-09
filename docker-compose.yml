@@ -1,0 +1,62 @@
+name: team_5
+
+services:
+  db:
+    image: postgres:16
+    container_name: team5-db
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: odoo
+    volumes:
+      - team5_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  odoo:
+    image: odoo:18
+    container_name: team5-odoo
+    depends_on:
+      - db
+    expose:
+      - "8069"
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+      DATABASE: odoo
+    command: odoo -d odoo -i base,project --db-filter=^odoo$$
+    volumes:
+      - team5_odoo_data:/var/lib/odoo
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./auditmate-backend-v2
+      dockerfile: Dockerfile
+    container_name: team5-backend
+    depends_on:
+      - db
+      - odoo
+    expose:
+      - "8000"
+    env_file:
+      - ./auditmate-backend-v2/.env
+    volumes:
+      - ./auditmate-backend-v2/static:/app/static:ro
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: team5-nginx
+    depends_on:
+      - odoo
+      - backend
+    ports:
+      - "8073:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+
+volumes:
+  team5_db_data:
+  team5_odoo_data:
