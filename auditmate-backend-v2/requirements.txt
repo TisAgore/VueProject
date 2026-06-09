@@ -1,0 +1,27 @@
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# AI
+# 0.27 ходит на отключённый api-inference.huggingface.co → DNS-фейл.
+# 1.x использует новый router.huggingface.co (Inference Providers).
+huggingface_hub==1.18.0
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+
+# Auth
+python-jose[cryptography]==3.3.0
+
+# HTTP client (Odoo)
+httpx==0.27.2
+
+# Config / env
+pydantic==2.9.2
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# Web search (без API-ключа). Пакет переименован: duckduckgo-search → ddgs.
+# Старый duckduckgo-search 6.x против текущего DuckDuckGo возвращает пусто.
+ddgs
